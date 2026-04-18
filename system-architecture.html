@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Loan System Architecture</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #f0f2f5;
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    color: #1c1e26;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 48px 24px;
+  }
+
+  h1 {
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: #374151;
+    margin-bottom: 6px;
+    text-align: center;
+  }
+
+  .subtitle {
+    font-size: 12px;
+    color: #9ca3af;
+    margin-bottom: 40px;
+    text-align: center;
+    letter-spacing: 0.06em;
+  }
+
+  .diagram {
+    width: 100%;
+    max-width: 1100px;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+
+  /* ── Lane ── */
+  .lane {
+    display: flex;
+    align-items: stretch;
+    min-height: 160px;
+  }
+
+  .lane-label {
+    width: 130px;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 16px 10px;
+    border-radius: 10px 0 0 10px;
+    text-align: center;
+  }
+
+  .lane-label .name {
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    line-height: 1.3;
+  }
+
+  .lane-label .role {
+    font-size: 10px;
+    font-weight: 400;
+    opacity: 0.6;
+    line-height: 1.4;
+  }
+
+  .lane-content {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    padding: 20px 24px;
+    gap: 14px;
+    border-radius: 0 10px 10px 0;
+    flex-wrap: wrap;
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-left: none;
+  }
+
+  /* ── Xport lane ── */
+  .lane-xport .lane-label { background: #3b5bdb; color: #ffffff; }
+
+  /* ── SaaS lane ── */
+  .lane-saas .lane-label { background: #2f9e44; color: #ffffff; }
+
+  /* ── Bank lane ── */
+  .lane-bank .lane-label { background: #6741d9; color: #ffffff; }
+
+  /* connector between lanes */
+  .connector {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 44px;
+    position: relative;
+    margin-left: 130px;
+    background: #f0f2f5;
+  }
+
+  .connector::before {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: 0; bottom: 0;
+    width: 1px;
+    background: #d1d5db;
+    transform: translateX(-50%);
+  }
+
+  .arrow-block {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    position: relative;
+    z-index: 2;
+    background: #f0f2f5;
+    padding: 0 12px;
+  }
+
+  .arrow-block .arrow-label {
+    font-size: 10px;
+    color: #6b7280;
+    white-space: nowrap;
+    letter-spacing: 0.03em;
+  }
+
+  .arr {
+    font-size: 14px;
+    color: #9ca3af;
+    line-height: 1;
+  }
+
+  /* ── Cards ── */
+  .card {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 11px 14px 11px 16px;
+    border-radius: 6px;
+    min-width: 120px;
+    max-width: 180px;
+    flex: 1;
+    background: #fafafa;
+    border: 1px solid #e5e7eb;
+    border-left-width: 3px;
+    transition: box-shadow 0.15s;
+    cursor: default;
+    position: relative;
+  }
+
+  .card:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.07); }
+
+  .card .card-title { font-size: 12px; font-weight: 600; color: #111827; line-height: 1.35; }
+  .card .card-sub   { font-size: 10px; color: #6b7280; line-height: 1.5; }
+
+  .card-xport { border-left-color: #3b5bdb; }
+  .card-saas  { border-left-color: #2f9e44; }
+  .card-bank  { border-left-color: #6741d9; }
+
+  /* SaaS lane */
+  .lane-saas { min-height: 200px; }
+  .lane-saas .lane-content {
+    flex-wrap: wrap;
+    align-items: flex-start;
+    padding: 20px 24px;
+    gap: 12px;
+  }
+
+  .modules-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+    flex: 1;
+  }
+
+  @media (max-width: 800px) {
+    .modules-grid { grid-template-columns: repeat(2, 1fr); }
+    .lane-label { width: 90px; }
+    .connector  { margin-left: 90px; }
+  }
+
+  /* tag */
+  .tag {
+    display: inline-block;
+    font-size: 9px;
+    padding: 1px 6px;
+    border-radius: 3px;
+    margin-top: 4px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    background: #f3f4f6;
+    color: #6b7280;
+    border: 1px solid #e5e7eb;
+  }
+
+  .footer {
+    margin-top: 32px;
+    font-size: 11px;
+    color: #d1d5db;
+    text-align: center;
+    letter-spacing: 0.05em;
+  }
+</style>
+</head>
+<body>
+
+<h1>Loan System Architecture</h1>
+<p class="subtitle">貸款業務系統 · 三端架構 · SaaS 核心模組</p>
+
+<div class="diagram">
+
+  <!-- ══ Xport Lane ══ -->
+  <div class="lane lane-xport">
+    <div class="lane-label">
+      <span class="name">Xport</span>
+      <span class="role">經銷商端</span>
+    </div>
+    <div class="lane-content">
+      <div class="card card-xport">
+        <span class="card-title">Loan Application</span>
+        <span class="card-sub">提交貸款申請<br>上傳文件資料</span>
+        <span class="tag">Dealer Portal</span>
+      </div>
+      <div class="card card-xport">
+        <span class="card-title">Application Status</span>
+        <span class="card-sub">查詢申請進度<br>接收審批通知</span>
+        <span class="tag">Real-time</span>
+      </div>
+      <div class="card card-xport">
+        <span class="card-title">Disbursement Info</span>
+        <span class="card-sub">放款確認<br>佣金查詢</span>
+        <span class="tag">Read-only</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- connector Xport → SaaS -->
+  <div class="connector">
+    <div class="arrow-block">
+      <span class="arr">↓↑</span>
+      <span class="arrow-label">申請提交 / 狀態回傳</span>
+    </div>
+  </div>
+
+  <!-- ══ SaaS Lane ══ -->
+  <div class="lane lane-saas">
+    <div class="lane-label">
+      <span class="name">SaaS</span>
+      <span class="role">BD 操作端</span>
+    </div>
+    <div class="lane-content">
+      <div class="modules-grid">
+
+        <div class="card card-saas">
+<span class="card-title">Loan Application</span>
+          <span class="card-sub">貸款申請管理<br>訂單建立與追蹤</span>
+          <span class="tag">Order Mgmt</span>
+        </div>
+
+        <div class="card card-saas">
+<span class="card-title">Bank Result</span>
+          <span class="card-sub">銀行審批結果<br>回填與同步</span>
+          <span class="tag">Auto-sync</span>
+        </div>
+
+        <div class="card card-saas">
+<span class="card-title">Disbursement Approval</span>
+          <span class="card-sub">放款一審 / 二審<br>雙層審批流程</span>
+          <span class="tag">Dual Review</span>
+        </div>
+
+        <div class="card card-saas">
+<span class="card-title">Commission Approval</span>
+          <span class="card-sub">佣金審批<br>費率計算與核可</span>
+          <span class="tag">Commission</span>
+        </div>
+
+        <div class="card card-saas">
+<span class="card-title">Repayment &amp; Reconciliation</span>
+          <span class="card-sub">還款管理<br>對帳勾稽</span>
+          <span class="tag">Reconcile</span>
+        </div>
+
+        <div class="card card-saas">
+<span class="card-title">Product Center</span>
+          <span class="card-sub">產品規則配置<br>佣金方案管理</span>
+          <span class="tag">Config</span>
+        </div>
+
+        <div class="card card-saas">
+<span class="card-title">All Disbursement Record</span>
+          <span class="card-sub">全放款紀錄<br>查詢與報表</span>
+          <span class="tag">Reporting</span>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- connector SaaS → Bank -->
+  <div class="connector">
+    <div class="arrow-block">
+      <span class="arr">↓↑</span>
+      <span class="arrow-label">RPA 銀行端進件 · 審批結果回傳</span>
+    </div>
+  </div>
+
+  <!-- ══ Bank Lane ══ -->
+  <div class="lane lane-bank">
+    <div class="lane-label">
+      <span class="name">銀企直連</span>
+      <span class="role">RPA · 銀行端</span>
+    </div>
+    <div class="lane-content">
+      <div class="card card-bank">
+        <span class="card-title">Maybank</span>
+        <span class="card-sub">馬來亞銀行<br>RPA 自動操作</span>
+        <span class="tag">RPA</span>
+      </div>
+      <div class="card card-bank">
+        <span class="card-title">OCBC</span>
+        <span class="card-sub">華僑銀行<br>RPA 自動操作</span>
+        <span class="tag">RPA</span>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<p class="footer">Loan Business System · Three-Tier Architecture · 2026</p>
+
+</body>
+</html>
